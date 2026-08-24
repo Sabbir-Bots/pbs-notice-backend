@@ -1,0 +1,31 @@
+name: PBS Notice Scanner
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run-scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create Firebase Credential File from Secret
+        run: |
+          echo "${{ secrets.FIREBASE_CREDENTIALS }}" > firebase_credentials.json
+
+      - name: Run Python Scanner
+        run: python scanner.py
+        

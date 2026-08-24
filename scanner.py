@@ -22,7 +22,7 @@ try:
       },
   )
 except ValueError:
-  pass  # ইতিমধ্যে ইনিশিয়ালাইজড থাকলে এরর এড়াতে
+  pass
 
 # sources.json ফাইল থেকে পবিসগুলোর লিস্ট লোড করা
 try:
@@ -63,57 +63,84 @@ def check_notices():
 
         if notice_table:
           rows = notice_table.find_all("tr")
-          notice_title = ""
-          notice_link = ""
+          notices_found = []
 
-          # টেবিলের হেডার বাদ দিয়ে ডাটা রো থেকে সঠিক শিরোনাম ও লিংক খুঁজে বের করা
+          # টেবিল থেকে প্রথম ৫-১০টি নোটিশ সংগ্রহ করা
           for row in rows:
             cells = row.find_all("td")
             if len(cells) >= 2:
-              # দ্বিতীয় কলামে (cells[1]) সাধারণত শিরোনাম থাকে
               title_cell = cells[1]
               link_tag = title_cell.find("a")
+
+              notice_title = ""
+              notice_link = ""
 
               if link_tag and link_tag.text.strip():
                 notice_title = link_tag.text.strip()
                 notice_link = link_tag.get("href", "")
-                break
               else:
                 text_val = title_cell.text.strip()
                 if text_val:
                   notice_title = text_val
-                  # অন্য কোনো কলামে বা পুরো রো তে কোনো পিডিএফ লিংক থাকলে তা নেওয়া
                   any_link = row.find("a")
                   notice_link = any_link.get("href", "") if any_link else ""
+
+              if notice_title:
+                if notice_link.startswith("/"):
+                  base_domain = "/".join(url.split("/")[:3])
+                  notice_link = base_domain + notice_link
+
+                notices_found.append(
+                    {"title": notice_title, "link": notice_link}
+                )
+
+                # সর্বোচ্চ ১০টি নোটিশ নেব
+                if len(notices_found) >= 10:
                   break
 
-          if notice_title:
-            # যদি relative link হয় তবে মূল ডোমেইন যুক্ত করা
-            if notice_link.startswith("/"):
-              base_domain = "/".join(url.split("/")[:3])
-              notice_link = base_domain + notice_link
-
+          if notices_found:
             ref = db.reference(f"notices/{source_id}")
             last_saved_title = ref.child("last_title").get()
 
-            # নতুন নোটিশ হলে ফায়ারবেসে সেভ করা
+            # একদম লেটেস্ট নোটিশটি নিয়ে কাজ শুরু
+            latest_notice = notices_found[0]
+            notice_title = latest_notice["title"]
+            notice_link = latest_notice["link"]
+
+            # ফরম্যাটেড ডেট ও টাইম তৈরি (যেমন: 24-08-2026 Mon, 06:32:55 PM)
+            current_time = datetime.now()
+            formatted_time = current_time.strftime("%d-%m-%Y %a, %I:%M:%S %p")
+            timestamp_ms = int(time.time() * 1000)
+
+            # যদি নতুন নোটিশ হয়, তবে পুরো হিস্ট্রি আপডেট করা এবং নোটিফিকেশন পাঠানো
             if notice_title != last_saved_title:
               print(f"[{source_name}] নতুন নোটিশ পাওয়া গেছে: {notice_title}")
 
+              # পবিসের মূল নোডে লেটেস্ট তথ্যগুলো সেভ করা (অ্যাপের হোম পেইজের লিস্টের জন্য)
               ref.child("last_title").set(notice_title)
-              ref.child("notices_history").push(
-                  {
-                      "title": notice_title,
-                      "link": notice_link,
-                      "timestamp": int(time.time() * 1000),
-                  }
-              )
+              ref.child("last_link").set(notice_link)
+              ref.child("source_name").set(source_name)
+              ref.child("formatted_time").set(formatted_time)
+              ref.child("timestamp").set(timestamp_ms)
+
+              # ভেতরের ডিটেইলস লিস্টের জন্য হিস্ট্রি নোড ফ্রেশ করে বা পুশ করে সাজানো
+              history_ref = ref.child("notices_history")
+              history_ref.delete()  # পুরানো লিস্ট মুছে নতুন ৫-১০ টা ফ্রেশ লিস্ট দেওয়ার জন্য
+
+              for item in notices_found:
+                history_ref.push(
+                    {
+                        "source_name": source_name,
+                        "title": item["title"],
+                        "link": item["link"],
+                        "formatted_time": formatted_time,
+                        "timestamp": timestamp_ms,
+                    }
+                )
 
               send_push_notification(
                   source_name, notice_title, notice_link, topic
               )
-          else:
-            print(f"[{source_name}] টেবিল থেকে কোনো শিরোনাম পাওয়া যায়নি।")
         else:
           print(f"[{source_name}] কোনো টেবিল পাওয়া যায়নি।")
 

@@ -62,23 +62,33 @@ def check_notices():
         notice_table = soup.find("table")
 
         if notice_table:
-          # টেবিলের সারিগুলো নেওয়া
           rows = notice_table.find_all("tr")
-          link_tag = None
+          notice_title = ""
+          notice_link = ""
 
-          # হেডার রো বাদ দিয়ে প্রথম ডাটা রো (যেখানে 'td' আছে) খুঁজে বের করা
+          # টেবিলের হেডার বাদ দিয়ে ডাটা রো থেকে সঠিক শিরোনাম ও লিংক খুঁজে বের করা
           for row in rows:
             cells = row.find_all("td")
-            if cells:
-              link_tag = row.find("a")
+            if len(cells) >= 2:
+              # দ্বিতীয় কলামে (cells[1]) সাধারণত শিরোনাম থাকে
+              title_cell = cells[1]
+              link_tag = title_cell.find("a")
+
               if link_tag and link_tag.text.strip():
+                notice_title = link_tag.text.strip()
+                notice_link = link_tag.get("href", "")
                 break
+              else:
+                text_val = title_cell.text.strip()
+                if text_val:
+                  notice_title = text_val
+                  # অন্য কোনো কলামে বা পুরো রো তে কোনো পিডিএফ লিংক থাকলে তা নেওয়া
+                  any_link = row.find("a")
+                  notice_link = any_link.get("href", "") if any_link else ""
+                  break
 
-          if link_tag:
-            notice_title = link_tag.text.strip()
-            notice_link = link_tag.get("href", "")
-
-            # যদি relative link হয় তবে বেস ডোমেইন যুক্ত করা
+          if notice_title:
+            # যদি relative link হয় তবে মূল ডোমেইন যুক্ত করা
             if notice_link.startswith("/"):
               base_domain = "/".join(url.split("/")[:3])
               notice_link = base_domain + notice_link
@@ -102,6 +112,8 @@ def check_notices():
               send_push_notification(
                   source_name, notice_title, notice_link, topic
               )
+          else:
+            print(f"[{source_name}] টেবিল থেকে কোনো শিরোনাম পাওয়া যায়নি।")
         else:
           print(f"[{source_name}] কোনো টেবিল পাওয়া যায়নি।")
 
@@ -135,4 +147,4 @@ def send_push_notification(source_name, title, link, topic):
 if __name__ == "__main__":
   check_notices()
   print("সকল পবিস ও REB সাইটের স্ক্যানিং সফলভাবে সম্পন্ন হয়েছে।")
-      
+  

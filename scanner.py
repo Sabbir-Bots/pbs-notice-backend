@@ -40,10 +40,14 @@ def check_notices():
   )
 
   for source in MASTER_SOURCES:
-    source_id = source["id"]
-    source_name = source["name"]
-    url = source["url"]
-    topic = source["topic"]
+    # sources.json থেকে প্রয়োজনীয় ফিল্ডগুলো সঠিকভাবে তুলে নেওয়া
+    source_id = source.get("id")  # যেমন: pbs1_bogra বা bogra_1
+    name_bn = source.get("name_bn")  # যেমন: বগুড়া পবিস-১
+    name_en = source.get("name_en")  # যেমন: Bogra PBS-1
+    url = source.get("url")
+    topic = source.get("topic")
+
+    print(f"[{name_bn}] স্ক্যান করা হচ্ছে...")
 
     try:
       headers = {
@@ -54,7 +58,7 @@ def check_notices():
       }
 
       response = requests.get(
-          url, headers=headers, timeout=60, verify=False
+          url, headers=headers, timeout=30, verify=False
       )
 
       if response.status_code == 200:
@@ -65,7 +69,6 @@ def check_notices():
           rows = notice_table.find_all("tr")
           notices_found = []
 
-          # টেবিল থেকে প্রথম ৫-১০টি নোটিশ সংগ্রহ করা
           for row in rows:
             cells = row.find_all("td")
             if len(cells) >= 2:
@@ -91,10 +94,9 @@ def check_notices():
                   notice_link = base_domain + notice_link
 
                 notices_found.append(
-                    {"title": notice_title, "link": notice_link}
+                    {"title": notice_title, "pdf_link": notice_link}
                 )
 
-                # সর্বোচ্চ ১০টি নোটিশ নেব
                 if len(notices_found) >= 10:
                   break
 
@@ -102,64 +104,73 @@ def check_notices():
             ref = db.reference(f"notices/{source_id}")
             last_saved_title = ref.child("last_title").get()
 
-            # একদম লেটেস্ট নোটিশটি নিয়ে কাজ শুরু
             latest_notice = notices_found[0]
             notice_title = latest_notice["title"]
-            notice_link = latest_notice["link"]
+            notice_link = latest_notice["pdf_link"]
 
-            # ফরম্যাটেড ডেট ও টাইম তৈরি (যেমন: 24-08-2026 Mon, 06:32:55 PM)
             current_time = datetime.now()
             formatted_time = current_time.strftime("%d-%m-%Y %a, %I:%M:%S %p")
-            timestamp_ms = int(time.time() * 1000)
 
-            # যদি নতুন নোটিশ হয়, তবে পুরো হিস্ট্রি আপডেট করা এবং নোটিফিকেশন পাঠানো
-            if notice_title != last_saved_title:
-              print(f"[{source_name}] নতুন নোটিশ পাওয়া গেছে: {notice_title}")
+            # নতুন নোটিশ হোক বা না হোক, অথবা প্রথমবার রান করার সময় ডাটা সিঙ্ক নিশ্চিত করতে
+            # পবিসের বেস ইনফো সবসময় আপডেট থাকবে
+            ref.child("id").set(source_id)
+            ref.child("name_bn").set(name_bn)
+            ref.child("name_en").set(name_en)
+            ref.child("last_title").set(notice_title)
+            ref.child("last_link").set(notice_link)
+            ref.child("formatted_time").set(formatted_time)
 
-              # পবিসের মূল নোডে লেটেস্ট তথ্যগুলো সেভ করা (অ্যাপের হোম পেইজের লিস্টের জন্য)
-              ref.child("last_title").set(notice_title)
-              ref.child("last_link").set(notice_link)
-              ref.child("source_name").set(source_name)
-              ref.child("formatted_time").set(formatted_time)
-              ref.child("timestamp").set(timestamp_ms)
+            # হিস্ট্রি আপডেট করা
+            history_ref = ref.child("notices_history")
+            history_ref.delete()
 
-              # ভেতরের ডিটেইলস লিস্টের জন্য হিস্ট্রি নোড ফ্রেশ করে বা পুশ করে সাজানো
-              history_ref = ref.child("notices_history")
-              history_ref.delete()  # পুরানো লিস্ট মুছে নতুন ৫-১০ টা ফ্রেশ লিস্ট দেওয়ার জন্য
-
-              for item in notices_found:
-                history_ref.push(
-                    {
-                        "source_name": source_name,
-                        "title": item["title"],
-                        "link": item["link"],
-                        "formatted_time": formatted_time,
-                        "timestamp": timestamp_ms,
-                    }
-                )
-
-              send_push_notification(
-                  source_name, notice_title, notice_link, topic
+            for item in notices_found:
+              history_ref.push(
+                  {
+                      "id": source_id,
+                      "name_bn": name_bn,
+                      "name_en": name_en,
+                      "title": item["title"],
+                      "pdf_link": item["pdf_link"],
+                      "formatted_time": formatted_time,
+                  }
               )
-        else:
-          print(f"[{source_name}] কোনো টেবিল পাওয়া যায়নি।")
 
-      time.sleep(1)
+            # যদি নতুন নোটিশ হয় তবেই নোটিফিকেশন যাবে
+            if notice_title != last_saved_title:
+              print(f"[{name_bn}] নতুন নোটিশ পাওয়া গেছে: {notice_title}")
+              send_push_notification(
+                  name_bn, notice_title, notice_link, topic
+              )
+          else:
+            print(f"[{name_bn}] টেবিল থেকে কোনো শিরোনাম পাওয়া যায়নি।")
+        else:
+          print(f"[{name_bn}] কোনো টেবিল পাওয়া যায়নি।")
+      else:
+        print(
+            f"[{name_bn}] সাইট রেসপন্স করেনি। স্ট্যাটাস কোড:"
+            f" {response.status_code}"
+        )
 
     except Exception as e:
-      print(f"[{source_name}] স্কিপ করা হয়েছে (ত্রুটি): {e}")
+      # কোনো পবিসে এরর আসলেও যেন লুপ ভেঙে না গিয়ে পরের পবিসে চলে যায়
+      print(f"[{name_bn}] স্ক্যান করতে গিয়ে সমস্যা হয়েছে: {e}")
+
+    time.sleep(1)
 
 
-def send_push_notification(source_name, title, link, topic):
+def send_push_notification(name_bn, title, link, topic):
+  if not topic:
+    return
   message = messaging.Message(
       notification=messaging.Notification(
-          title=f"🔔 {source_name}",
+          title=f"🔔 {name_bn}",
           body=title,
       ),
       data={
           "click_action": "NOTICE_DETAILS",
           "url": link,
-          "source": source_name,
+          "source": name_bn,
       },
       topic=topic,
   )

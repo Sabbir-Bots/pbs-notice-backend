@@ -22,10 +22,6 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create Firebase Credential File from Secret
-        run: |
-          echo "${{ secrets.FIREBASE_CREDENTIALS }}" > firebase_credentials.json
-
       - name: Run Python Scanner
         run: python scanner.py
         

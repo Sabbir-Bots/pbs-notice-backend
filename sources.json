@@ -4,6 +4,7 @@
     "main_id": "reb_central",
     "name_en": "Bangladesh Rural Electrification Board (REB)",
     "name_bn": "বাংলাদেশ পল্লী বিদ্যুতায়ন বোর্ড (REB)",
+    "serial": "00",
     "url": "https://reb.gov.bd/pages/notices"
   },
   {
@@ -11,6 +12,7 @@
     "main_id": "dhaka_1",
     "name_en": "Dhaka PBS 1",
     "name_bn": "ঢাকা পবিস-১",
+    "serial": "01",
     "url": "https://pbs1.dhaka.gov.bd/pages/notices"
   },
   {
@@ -18,6 +20,7 @@
     "main_id": "dhaka_2",
     "name_en": "Dhaka PBS 2",
     "name_bn": "ঢাকা পবিস-২",
+    "serial": "02",
     "url": "https://pbs2.dhaka.gov.bd/pages/notices"
   },
   {
@@ -25,6 +28,7 @@
     "main_id": "dhaka_3",
     "name_en": "Dhaka PBS 3",
     "name_bn": "ঢাকা পবিস-৩",
+    "serial": "03",
     "url": "https://pbs3.dhaka.gov.bd/pages/notices"
   },
   {
@@ -32,6 +36,7 @@
     "main_id": "dhaka_4",
     "name_en": "Dhaka PBS 4",
     "name_bn": "ঢাকা পবিস-৪",
+    "serial": "04",
     "url": "https://pbs4.dhaka.gov.bd/pages/notices"
   },
   {
@@ -39,6 +44,7 @@
     "main_id": "narsingdi_1",
     "name_en": "Narsingdi PBS 1",
     "name_bn": "নরসিংদী পবিস-১",
+    "serial": "05",
     "url": "https://pbs1.narsingdi.gov.bd/pages/notices"
   },
   {
@@ -46,6 +52,7 @@
     "main_id": "narsingdi_2",
     "name_en": "Narsingdi PBS 2",
     "name_bn": "নরসিংদী পবিস-২",
+    "serial": "06",
     "url": "https://pbs2.narsingdi.gov.bd/pages/notices"
   },
   {
@@ -53,6 +60,7 @@
     "main_id": "tangail",
     "name_en": "Tangail PBS",
     "name_bn": "টাঙ্গাইল পবিস",
+    "serial": "07",
     "url": "https://pbs.tangail.gov.bd/pages/notices"
   },
   {
@@ -60,6 +68,7 @@
     "main_id": "kishoreganj",
     "name_en": "Kishoreganj PBS",
     "name_bn": "কিশোরগঞ্জ পবিস",
+    "serial": "08",
     "url": "https://pbs.kishoreganj.gov.bd/pages/notices"
   },
   {
@@ -67,6 +76,7 @@
     "main_id": "jamalpur",
     "name_en": "Jamalpur PBS",
     "name_bn": "জামালপুর পবিস",
+    "serial": "09",
     "url": "https://pbs.jamalpur.gov.bd/pages/notices"
   },
   {
@@ -74,6 +84,7 @@
     "main_id": "mymensingh_1",
     "name_en": "Mymensingh PBS 1",
     "name_bn": "ময়মনসিংহ পবিস-১",
+    "serial": "10",
     "url": "https://pbs1.mymensingh.gov.bd/pages/notices"
   },
   {
@@ -81,6 +92,7 @@
     "main_id": "mymensingh_2",
     "name_en": "Mymensingh PBS 2",
     "name_bn": "ময়মনসিংহ পবিস-২",
+    "serial": "11",
     "url": "https://pbs2.mymensingh.gov.bd/pages/notices"
   },
   {
@@ -88,6 +100,7 @@
     "main_id": "mymensingh_3",
     "name_en": "Mymensingh PBS 3",
     "name_bn": "ময়মনসিংহ পবিস-৩",
+    "serial": "12",
     "url": "https://pbs3.mymensingh.gov.bd/pages/notices"
   },
   {
@@ -95,6 +108,7 @@
     "main_id": "manikganj",
     "name_en": "Manikganj PBS",
     "name_bn": "মানিকগঞ্জ পবিস",
+    "serial": "13",
     "url": "https://pbs.manikganj.gov.bd/pages/notices"
   },
   {
@@ -102,6 +116,7 @@
     "main_id": "netrokona",
     "name_en": "Netrokona PBS",
     "name_bn": "নেত্রকোনা পবিস",
+    "serial": "14",
     "url": "https://pbs.netrokona.gov.bd/pages/notices"
   },
   {
@@ -109,6 +124,7 @@
     "main_id": "munshiganj",
     "name_en": "Munshiganj PBS",
     "name_bn": "মুন্সিগঞ্জ পবিস",
+    "serial": "15",
     "url": "https://pbs.munshiganj.gov.bd/pages/notices"
   },
   {
@@ -116,6 +132,7 @@
     "main_id": "sherpur",
     "name_en": "Sherpur PBS",
     "name_bn": "শেরপুর পবিস",
+    "serial": "16",
     "url": "https://pbs.sherpur.gov.bd/pages/notices"
   },
   {
@@ -123,6 +140,7 @@
     "main_id": "gazipur_1",
     "name_en": "Gazipur PBS 1",
     "name_bn": "গাজীপুর পবিস-১",
+    "serial": "17",
     "url": "https://pbs1.gazipur.gov.bd/pages/notices"
   },
   {
@@ -130,6 +148,7 @@
     "main_id": "gazipur_2",
     "name_en": "Gazipur PBS 2",
     "name_bn": "গাজীপুর পবিস-২",
+    "serial": "18",
     "url": "https://pbs2.gazipur.gov.bd/pages/notices"
   },
   {
@@ -137,6 +156,7 @@
     "main_id": "narayanganj_1",
     "name_en": "Narayanganj PBS 1",
     "name_bn": "নারায়ণগঞ্জ পবিস-১",
+    "serial": "19",
     "url": "https://pbs1.narayanganj.gov.bd/pages/notices"
   },
   {
@@ -144,6 +164,7 @@
     "main_id": "narayanganj_2",
     "name_en": "Narayanganj PBS 2",
     "name_bn": "নারায়ণগঞ্জ পবিস-২",
+    "serial": "20",
     "url": "https://pbs2.narayanganj.gov.bd/pages/notices"
   },
   {
@@ -151,6 +172,7 @@
     "main_id": "rajshahi",
     "name_en": "Rajshahi PBS",
     "name_bn": "রাজশাহী পবিস",
+    "serial": "21",
     "url": "https://pbs.rajshahi.gov.bd/pages/notices"
   },
   {
@@ -158,6 +180,7 @@
     "main_id": "chapainawabganj",
     "name_en": "Chapainawabganj PBS",
     "name_bn": "চাঁপাইনবাবগঞ্জ পবিস",
+    "serial": "22",
     "url": "https://pbs.chapainawabganj.gov.bd/pages/notices"
   },
   {
@@ -165,6 +188,7 @@
     "main_id": "bogra_1",
     "name_en": "Bogra PBS 1",
     "name_bn": "বগুড়া পবিস-১",
+    "serial": "23",
     "url": "https://pbs1.bogra.gov.bd/pages/notices"
   },
   {
@@ -172,6 +196,7 @@
     "main_id": "bogra_2",
     "name_en": "Bogra PBS 2",
     "name_bn": "বগুড়া পবিস-২",
+    "serial": "24",
     "url": "https://pbs2.bogra.gov.bd/pages/notices"
   },
   {
@@ -179,6 +204,7 @@
     "main_id": "sirajganj_1",
     "name_en": "Sirajganj PBS 1",
     "name_bn": "সিরাজগঞ্জ পবিস-১",
+    "serial": "25",
     "url": "https://pbs1.sirajganj.gov.bd/pages/notices"
   },
   {
@@ -186,6 +212,7 @@
     "main_id": "sirajganj_2",
     "name_en": "Sirajganj PBS 2",
     "name_bn": "সিরাজগঞ্জ পবিস-২",
+    "serial": "26",
     "url": "https://pbs2.sirajganj.gov.bd/pages/notices"
   },
   {
@@ -193,6 +220,7 @@
     "main_id": "naogaon_1",
     "name_en": "Naogaon PBS 1",
     "name_bn": "নওগাঁ পবিস-১",
+    "serial": "27",
     "url": "https://pbs1.naogaon.gov.bd/pages/notices"
   },
   {
@@ -200,6 +228,7 @@
     "main_id": "naogaon_2",
     "name_en": "Naogaon PBS 2",
     "name_bn": "নওগাঁ পবিস-২",
+    "serial": "28",
     "url": "https://pbs2.naogaon.gov.bd/pages/notices"
   },
   {
@@ -207,6 +236,7 @@
     "main_id": "joypurhat",
     "name_en": "Joypurhat PBS",
     "name_bn": "জয়পুরহাট পবিস",
+    "serial": "29",
     "url": "https://pbs.joypurhat.gov.bd/pages/notices"
   },
   {
@@ -214,6 +244,7 @@
     "main_id": "rangpur_1",
     "name_en": "Rangpur PBS 1",
     "name_bn": "রংপুর পবিস-১",
+    "serial": "30",
     "url": "https://pbs1.rangpur.gov.bd/pages/notices"
   },
   {
@@ -221,6 +252,7 @@
     "main_id": "rangpur_2",
     "name_en": "Rangpur PBS 2",
     "name_bn": "রংপুর পবিস-২",
+    "serial": "31",
     "url": "https://pbs2.rangpur.gov.bd/pages/notices"
   },
   {
@@ -228,6 +260,7 @@
     "main_id": "gaibandha",
     "name_en": "Gaibandha PBS",
     "name_bn": "গাইবান্ধা পবিস",
+    "serial": "32",
     "url": "https://pbs.gaibandha.gov.bd/pages/notices"
   },
   {
@@ -235,6 +268,7 @@
     "main_id": "kur_lal",
     "name_en": "Kurigram-Lalmonirhat PBS",
     "name_bn": "কুড়িগ্রাম-লালমনিরহাট পবিস",
+    "serial": "33",
     "url": "https://pbs.kurigram.gov.bd/pages/notices"
   },
   {
@@ -242,6 +276,7 @@
     "main_id": "dinajpur_1",
     "name_en": "Dinajpur PBS 1",
     "name_bn": "দিনাজপুর পবিস-১",
+    "serial": "34",
     "url": "https://pbs1.dinajpur.gov.bd/pages/notices"
   },
   {
@@ -249,6 +284,7 @@
     "main_id": "dinajpur_2",
     "name_en": "Dinajpur PBS 2",
     "name_bn": "দিনাজপুর পবিস-২",
+    "serial": "35",
     "url": "https://pbs2.dinajpur.gov.bd/pages/notices"
   },
   {
@@ -256,6 +292,7 @@
     "main_id": "nilphamari",
     "name_en": "Nilphamari PBS",
     "name_bn": "নীলফামারী পবিস",
+    "serial": "36",
     "url": "https://pbs.nilphamari.gov.bd/pages/notices"
   },
   {
@@ -263,6 +300,7 @@
     "main_id": "thakurgaon",
     "name_en": "Thakurgaon PBS",
     "name_bn": "ঠাকুরগাঁও পবিস",
+    "serial": "37",
     "url": "https://pbs.thakurgaon.gov.bd/pages/notices"
   },
   {
@@ -270,6 +308,7 @@
     "main_id": "barisal_1",
     "name_en": "Barisal PBS 1",
     "name_bn": "বরিশাল পবিস-১",
+    "serial": "38",
     "url": "https://pbs1.barisal.gov.bd/pages/notices"
   },
   {
@@ -277,6 +316,7 @@
     "main_id": "barisal_2",
     "name_en": "Barisal PBS 2",
     "name_bn": "বরিশাল পবিস-২",
+    "serial": "39",
     "url": "https://pbs2.barisal.gov.bd/pages/notices"
   },
   {
@@ -284,6 +324,7 @@
     "main_id": "jhalokati",
     "name_en": "Jhalokati PBS",
     "name_bn": "ঝালকাঠি পবিস",
+    "serial": "40",
     "url": "https://pbs.jhalakathi.gov.bd/pages/notices"
   },
   {
@@ -291,6 +332,7 @@
     "main_id": "pirojpur",
     "name_en": "Pirojpur PBS",
     "name_bn": "পিরোজপুর পবিস",
+    "serial": "41",
     "url": "https://pbs.pirojpur.gov.bd/pages/notices"
   },
   {
@@ -298,6 +340,7 @@
     "main_id": "patuakhali",
     "name_en": "Patuakhali PBS",
     "name_bn": "পটুয়াখালী পবিস",
+    "serial": "42",
     "url": "https://pbs.patuakhali.gov.bd/pages/notices"
   },
   {
@@ -305,6 +348,7 @@
     "main_id": "bhola",
     "name_en": "Bhola PBS",
     "name_bn": "ভোলা পবিস",
+    "serial": "43",
     "url": "https://pbs.bhola.gov.bd/pages/notices"
   },
   {
@@ -312,6 +356,7 @@
     "main_id": "chittagong_1",
     "name_en": "Chittagong PBS 1",
     "name_bn": "চট্টগ্রাম পবিস-১",
+    "serial": "44",
     "url": "https://pbs1.chittagong.gov.bd/pages/notices"
   },
   {
@@ -319,6 +364,7 @@
     "main_id": "chittagong_2",
     "name_en": "Chittagong PBS 2",
     "name_bn": "চট্টগ্রাম পবিস-২",
+    "serial": "45",
     "url": "https://pbs2.chittagong.gov.bd/pages/notices"
   },
   {
@@ -326,6 +372,7 @@
     "main_id": "chittagong_3",
     "name_en": "Chittagong PBS 3",
     "name_bn": "চট্টগ্রাম পবিস-৩",
+    "serial": "46",
     "url": "https://pbs3.chittagong.gov.bd/pages/notices"
   },
   {
@@ -333,6 +380,7 @@
     "main_id": "coxs_bazar",
     "name_en": "Cox's Bazar PBS",
     "name_bn": "কক্সবাজার পবিস",
+    "serial": "47",
     "url": "https://pbs.coxsbazar.gov.bd/pages/notices"
   },
   {
@@ -340,6 +388,7 @@
     "main_id": "noakhali",
     "name_en": "Noakhali PBS",
     "name_bn": "নোয়াখালী পবিস",
+    "serial": "48",
     "url": "https://pbs.noakhali.gov.bd/pages/notices"
   },
   {
@@ -347,6 +396,7 @@
     "main_id": "laxmipur",
     "name_en": "Laxmipur PBS",
     "name_bn": "লক্ষ্মীপুর পবিস",
+    "serial": "49",
     "url": "https://pbs.lakshmipur.gov.bd/pages/notices"
   },
   {
@@ -354,6 +404,7 @@
     "main_id": "feni",
     "name_en": "Feni PBS",
     "name_bn": "ফেনী পবিস",
+    "serial": "50",
     "url": "https://pbs.feni.gov.bd/pages/notices"
   },
   {
@@ -361,6 +412,7 @@
     "main_id": "sylhet_1",
     "name_en": "Sylhet PBS 1",
     "name_bn": "সিলেট পবিস-১",
+    "serial": "51",
     "url": "https://pbs1.sylhet.gov.bd/pages/notices"
   },
   {
@@ -368,6 +420,7 @@
     "main_id": "sylhet_2",
     "name_en": "Sylhet PBS 2",
     "name_bn": "সিলেট পবিস-২",
+    "serial": "52",
     "url": "https://pbs2.sylhet.gov.bd/pages/notices"
   },
   {
@@ -375,6 +428,7 @@
     "main_id": "habiganj",
     "name_en": "Habiganj PBS",
     "name_bn": "হবিগঞ্জ পবিস",
+    "serial": "53",
     "url": "https://pbs.habiganj.gov.bd/pages/notices"
   },
   {
@@ -382,6 +436,7 @@
     "main_id": "moulvibazar",
     "name_en": "Moulvibazar PBS",
     "name_bn": "মৌলভীবাজার পবিস",
+    "serial": "54",
     "url": "https://pbs.moulvibazar.gov.bd/pages/notices"
   },
   {
@@ -389,6 +444,7 @@
     "main_id": "sunamganj",
     "name_en": "Sunamganj PBS",
     "name_bn": "সুনামগঞ্জ পবিস",
+    "serial": "55",
     "url": "https://pbs.sunamganj.gov.bd/pages/notices"
   },
   {
@@ -396,6 +452,7 @@
     "main_id": "comilla_1",
     "name_en": "Comilla PBS 1",
     "name_bn": "কুমিল্লা পবিস-১",
+    "serial": "56",
     "url": "https://pbs1.comilla.gov.bd/pages/notices"
   },
   {
@@ -403,6 +460,7 @@
     "main_id": "comilla_2",
     "name_en": "Comilla PBS 2",
     "name_bn": "কুমিল্লা পবিস-২",
+    "serial": "57",
     "url": "https://pbs2.comilla.gov.bd/pages/notices"
   },
   {
@@ -410,6 +468,7 @@
     "main_id": "comilla_3",
     "name_en": "Comilla PBS 3",
     "name_bn": "কুমিল্লা পবিস-৩",
+    "serial": "58",
     "url": "https://pbs3.comilla.gov.bd/pages/notices"
   },
   {
@@ -417,6 +476,7 @@
     "main_id": "comilla_4",
     "name_en": "Comilla PBS 4",
     "name_bn": "কুমিল্লা পবিস-৪",
+    "serial": "59",
     "url": "https://pbs4.comilla.gov.bd/pages/notices"
   },
   {
@@ -424,6 +484,7 @@
     "main_id": "chandpur_1",
     "name_en": "Chandpur PBS 1",
     "name_bn": "চাঁদপুর পবিস-১",
+    "serial": "60",
     "url": "https://pbs1.chandpur.gov.bd/pages/notices"
   },
   {
@@ -431,6 +492,7 @@
     "main_id": "chandpur_2",
     "name_en": "Chandpur PBS 2",
     "name_bn": "চাঁদপুর পবিস-২",
+    "serial": "61",
     "url": "https://pbs2.chandpur.gov.bd/pages/notices"
   },
   {
@@ -438,6 +500,7 @@
     "main_id": "brahmanbaria",
     "name_en": "Brahmanbaria PBS",
     "name_bn": "ব্রাহ্মণবাড়িয়া পবিস",
+    "serial": "62",
     "url": "https://pbs.brahmanbaria.gov.bd/pages/notices"
   },
   {
@@ -445,6 +508,7 @@
     "main_id": "jashore_1",
     "name_en": "Jashore PBS 1",
     "name_bn": "যশোর পবিস-১",
+    "serial": "63",
     "url": "https://pbs1.jashore.gov.bd/pages/notices"
   },
   {
@@ -452,6 +516,7 @@
     "main_id": "jashore_2",
     "name_en": "Jashore PBS 2",
     "name_bn": "যশোর পবিস-২",
+    "serial": "64",
     "url": "https://pbs2.jashore.gov.bd/pages/notices"
   },
   {
@@ -459,6 +524,7 @@
     "main_id": "satkhira",
     "name_en": "Satkhira PBS",
     "name_bn": "সাতক্ষীরা পবিস",
+    "serial": "65",
     "url": "https://pbs.satkhira.gov.bd/pages/notices"
   },
   {
@@ -466,6 +532,7 @@
     "main_id": "khulna",
     "name_en": "Khulna PBS",
     "name_bn": "খুলনা পবিস",
+    "serial": "66",
     "url": "https://pbs.khulna.gov.bd/pages/notices"
   },
   {
@@ -473,6 +540,7 @@
     "main_id": "bagerhat",
     "name_en": "Bagerhat PBS",
     "name_bn": "বাগেরহাট পবিস",
+    "serial": "67",
     "url": "https://pbs.bagerhat.gov.bd/pages/notices"
   },
   {
@@ -480,6 +548,7 @@
     "main_id": "madaripur",
     "name_en": "Madaripur PBS",
     "name_bn": "মাদারীপুর পবিস",
+    "serial": "68",
     "url": "https://pbs.madaripur.gov.bd/pages/notices"
   },
   {
@@ -487,6 +556,7 @@
     "main_id": "shariatpur",
     "name_en": "Shariatpur PBS",
     "name_bn": "শরীয়তপুর পবিস",
+    "serial": "69",
     "url": "https://pbs.shariatpur.gov.bd/pages/notices"
   },
   {
@@ -494,6 +564,7 @@
     "main_id": "magura",
     "name_en": "Magura PBS",
     "name_bn": "মাগুরা পবিস",
+    "serial": "70",
     "url": "https://pbs.magura.gov.bd/pages/notices"
   },
   {
@@ -501,6 +572,7 @@
     "main_id": "jhenaidah",
     "name_en": "Jhenaidah PBS",
     "name_bn": "ঝিনাইদহ পবিস",
+    "serial": "71",
     "url": "https://pbs.jhenaidah.gov.bd/pages/notices"
   },
   {
@@ -508,6 +580,7 @@
     "main_id": "meherpur",
     "name_en": "Meherpur PBS",
     "name_bn": "মেহেরপুর পবিস",
+    "serial": "72",
     "url": "https://pbs.meherpur.gov.bd/pages/notices"
   },
   {
@@ -515,6 +588,7 @@
     "main_id": "kushtia",
     "name_en": "Kushtia PBS",
     "name_bn": "কুষ্টিয়া পবিস",
+    "serial": "73",
     "url": "https://pbs.kushtia.gov.bd/pages/notices"
   },
   {
@@ -522,6 +596,7 @@
     "main_id": "rajbari",
     "name_en": "Rajbari PBS",
     "name_bn": "রাজবাড়ী পবিস",
+    "serial": "74",
     "url": "https://pbs.rajbari.gov.bd/pages/notices"
   },
   {
@@ -529,6 +604,7 @@
     "main_id": "faridpur",
     "name_en": "Faridpur PBS",
     "name_bn": "ফরিদপুর পবিস",
+    "serial": "75",
     "url": "https://pbs.faridpur.gov.bd/pages/notices"
   },
   {
@@ -536,6 +612,7 @@
     "main_id": "gopalganj",
     "name_en": "Gopalganj PBS",
     "name_bn": "গোপালগঞ্জ পবিস",
+    "serial": "76",
     "url": "https://pbs.gopalganj.gov.bd/pages/notices"
   },
   {
@@ -543,6 +620,7 @@
     "main_id": "natore_1",
     "name_en": "Natore PBS 1",
     "name_bn": "নাটোর পবিস-১",
+    "serial": "77",
     "url": "https://pbs1.natore.gov.bd/pages/notices"
   },
   {
@@ -550,6 +628,7 @@
     "main_id": "natore_2",
     "name_en": "Natore PBS 2",
     "name_bn": "নাটোর পবিস-২",
+    "serial": "78",
     "url": "https://pbs2.natore.gov.bd/pages/notices"
   },
   {
@@ -557,6 +636,7 @@
     "main_id": "pabna_1",
     "name_en": "Pabna PBS 1",
     "name_bn": "পাবনা পবিস-১",
+    "serial": "79",
     "url": "https://pbs1.pabna.gov.bd/pages/notices"
   },
   {
@@ -564,6 +644,7 @@
     "main_id": "pabna_2",
     "name_en": "Pabna PBS 2",
     "name_bn": "পাবনা পবিস-২",
+    "serial": "80",
     "url": "https://pbs2.pabna.gov.bd/pages/notices"
   }
 ]

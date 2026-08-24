@@ -11,7 +11,7 @@ firebase_admin.initialize_app(
     cred,
     {
         "databaseURL": (
-            "https://your-firebase-database-url.firebaseio.com"  # তোমার ফায়ারবেস URL
+            "https://love-lucky-62b3c-default-rtdb.firebaseio.com"  # তোমার ফায়ারবেস URL
         )
     },
 )

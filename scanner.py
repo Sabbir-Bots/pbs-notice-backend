@@ -124,10 +124,5 @@ def send_push_notification(source_name, title, link, topic):
     print(f"নোটিফিকেশন পাঠাতে ব্যর্থ: {e}")
 
 
-# ব্যাকগ্রাউন্ড লুপ (প্রতি ৩০ মিনিট পর পর সব সাইট চেক করবে)
 if __name__ == "__main__":
-  while True:
-    check_notices()
-    print("পরবর্তী স্ক্যানের জন্য ৩০ মিনিট অপেক্ষা করা হচ্ছে...\n")
-    time.sleep(1800)  # ১৮০০ সেকেন্ড = ৩০ মিনিট
-      
+  check_notices()

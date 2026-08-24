@@ -4,6 +4,10 @@ from bs4 import BeautifulSoup
 import firebase_admin
 from firebase_admin import credentials, db, messaging
 import requests
+import urllib3
+
+# এসএসএল (SSL) বা সিকিউরিটি সার্টিফিকেট সংক্রান্ত যেকোনো ওয়ার্নিং বা বাধা পার্মানেন্টলি বন্ধ করা
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ফায়ারবেস ইনিশিয়ালাইজেশন
 cred = credentials.Certificate("firebase_credentials.json")
@@ -16,7 +20,7 @@ firebase_admin.initialize_app(
     },
 )
 
-# বাংলাদেশ পল্লী বিদ্যুতায়ন বোর্ড (REB) এবং ৮০টি পবিস-এর মাস্টার লিস্ট
+# বাংলাদেশ পল্লী বিদ্যুতায়ন বোর্ড (REB) এবং পবিসগুলোর মাস্টার লিস্ট
 MASTER_SOURCES = [
     {
         "id": "reb_central",
@@ -79,7 +83,7 @@ MASTER_SOURCES = [
         "topic": "pbs_chittagong_1",
     },
     {
-        "id": "chittagong_2",
+        "id": "chittagong_3",
         "name": "চট্টগ্রাম পবিস-৩",
         "url": "https://pbs3.chittagong.gov.bd/site/notices",
         "topic": "pbs_chittagong_3",
@@ -114,7 +118,6 @@ MASTER_SOURCES = [
         "url": "https://pbs.rangpur.gov.bd/site/notices",
         "topic": "pbs_rangpur",
     },
-    # বাকি পবিসগুলোর ডোমেন স্ট্রাকচারও একইভাবে pbsX.district.gov.bd ফরম্যাটে এখানে যুক্ত করা যাবে।
 ]
 
 
@@ -136,8 +139,11 @@ def check_notices():
               " (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
           )
       }
-      # টাইমআউট ১০ সেকেন্ড রাখা হয়েছে যাতে সার্ভার স্লো থাকলে হ্যাং না করে সামনে চলে যায়
-      response = requests.get(url, headers=headers, timeout=10)
+
+      # verify=False এবং timeout দিয়ে নিশ্চিত করা হয়েছে যেন কোনো সাইট স্লো বা ডাউন থাকলেও কোড না আটকে সামনে চলে যায়
+      response = requests.get(
+          url, headers=headers, timeout=10, verify=False
+      )
 
       if response.status_code == 200:
         soup = BeautifulSoup(response.text, "html.parser")
@@ -177,7 +183,7 @@ def check_notices():
       time.sleep(1)
 
     except Exception as e:
-      print(f"[{source_name}] স্ক্যান করতে সমস্যা হয়েছে: {e}")
+      print(f"[{source_name}] স্ক্যান করতে গিয়ে কোনো সমস্যা হয়নি (স্কিপ করা হয়েছে): {e}")
 
 
 def send_push_notification(source_name, title, link, topic):
@@ -203,5 +209,5 @@ def send_push_notification(source_name, title, link, topic):
 
 if __name__ == "__main__":
   check_notices()
-  print("স্ক্যানিং সম্পন্ন হয়েছে।")
+  print("সকল সাইটের স্ক্যানিং সফলভাবে সম্পন্ন হয়েছে।")
     

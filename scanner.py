@@ -51,7 +51,7 @@ def check_notices():
       }
 
       response = requests.get(
-          url, headers=headers, timeout=10, verify=False
+          url, headers=headers, timeout=60, verify=False
       )
 
       if response.status_code == 200:

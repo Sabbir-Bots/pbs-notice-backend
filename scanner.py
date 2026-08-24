@@ -11,17 +11,20 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ফায়ারবেস ইনিশিয়ালাইজেশন
-cred = credentials.Certificate("firebase_credentials.json")
-firebase_admin.initialize_app(
-    cred,
-    {
-        "databaseURL": (
-            "https://love-lucky-62b3c-default-rtdb.firebaseio.com"
-        )
-    },
-)
+try:
+  cred = credentials.Certificate("firebase_credentials.json")
+  firebase_admin.initialize_app(
+      cred,
+      {
+          "databaseURL": (
+              "https://love-lucky-62b3c-default-rtdb.firebaseio.com"
+          )
+      },
+  )
+except ValueError:
+  pass  # ইতিমধ্যে ইনিশিয়ালাইজড থাকলে এরর এড়াতে
 
-# external sources.json ফাইল থেকে পবিসগুলোর লিস্ট লোড করা
+# sources.json ফাইল থেকে পবিসগুলোর লিস্ট লোড করা
 try:
   with open("sources.json", "r", encoding="utf-8") as f:
     MASTER_SOURCES = json.load(f)
@@ -59,40 +62,53 @@ def check_notices():
         notice_table = soup.find("table")
 
         if notice_table:
-          first_row = notice_table.find("tr")
-          if first_row:
-            link_tag = first_row.find("a")
-            if link_tag:
-              notice_title = link_tag.text.strip()
-              notice_link = link_tag.get("href", "")
+          # টেবিলের সারিগুলো নেওয়া
+          rows = notice_table.find_all("tr")
+          link_tag = None
 
-              if notice_link.startswith("/"):
-                base_domain = "/".join(url.split("/")[:3])
-                notice_link = base_domain + notice_link
+          # হেডার রো বাদ দিয়ে প্রথম ডাটা রো (যেখানে 'td' আছে) খুঁজে বের করা
+          for row in rows:
+            cells = row.find_all("td")
+            if cells:
+              link_tag = row.find("a")
+              if link_tag and link_tag.text.strip():
+                break
 
-              ref = db.reference(f"notices/{source_id}")
-              last_saved_title = ref.child("last_title").get()
+          if link_tag:
+            notice_title = link_tag.text.strip()
+            notice_link = link_tag.get("href", "")
 
-              if notice_title != last_saved_title:
-                print(f"[{source_name}] নতুন নোটিশ পাওয়া গেছে: {notice_title}")
+            # যদি relative link হয় তবে বেস ডোমেইন যুক্ত করা
+            if notice_link.startswith("/"):
+              base_domain = "/".join(url.split("/")[:3])
+              notice_link = base_domain + notice_link
 
-                ref.child("last_title").set(notice_title)
-                ref.child("notices_history").push(
-                    {
-                        "title": notice_title,
-                        "link": notice_link,
-                        "timestamp": int(time.time() * 1000),
-                    }
-                )
+            ref = db.reference(f"notices/{source_id}")
+            last_saved_title = ref.child("last_title").get()
 
-                send_push_notification(
-                    source_name, notice_title, notice_link, topic
-                )
+            # নতুন নোটিশ হলে ফায়ারবেসে সেভ করা
+            if notice_title != last_saved_title:
+              print(f"[{source_name}] নতুন নোটিশ পাওয়া গেছে: {notice_title}")
+
+              ref.child("last_title").set(notice_title)
+              ref.child("notices_history").push(
+                  {
+                      "title": notice_title,
+                      "link": notice_link,
+                      "timestamp": int(time.time() * 1000),
+                  }
+              )
+
+              send_push_notification(
+                  source_name, notice_title, notice_link, topic
+              )
+        else:
+          print(f"[{source_name}] কোনো টেবিল পাওয়া যায়নি।")
 
       time.sleep(1)
 
     except Exception as e:
-      print(f"[{source_name}] স্কিপ করা হয়েছে (টাইমআউট/ত্রুটি): {e}")
+      print(f"[{source_name}] স্কিপ করা হয়েছে (ত্রুটি): {e}")
 
 
 def send_push_notification(source_name, title, link, topic):
@@ -119,4 +135,4 @@ def send_push_notification(source_name, title, link, topic):
 if __name__ == "__main__":
   check_notices()
   print("সকল পবিস ও REB সাইটের স্ক্যানিং সফলভাবে সম্পন্ন হয়েছে।")
-    
+      

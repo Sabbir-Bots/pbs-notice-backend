@@ -24,7 +24,7 @@ try:
 except ValueError:
   pass
 
-# sources.json ফাইল থেকে পবিসগুলোর লিস্ট লোড করা
+# sources.json (বা targets.json) ফাইল থেকে পবিসগুলোর লিস্ট লোড করা
 try:
   with open("sources.json", "r", encoding="utf-8") as f:
     MASTER_SOURCES = json.load(f)
@@ -41,9 +41,11 @@ def check_notices():
 
   for source in MASTER_SOURCES:
     # sources.json থেকে প্রয়োজনীয় ফিল্ডগুলো সঠিকভাবে তুলে নেওয়া
-    source_id = source.get("id")  # যেমন: pbs1_bogra বা bogra_1
-    name_bn = source.get("name_bn")  # যেমন: বগুড়া পবিস-১
-    name_en = source.get("name_en")  # যেমন: Bogra PBS-1
+    source_id = source.get("id")          # যেমন: pbs1_bogra
+    pbs_code = source.get("pbs", "")      # যেমন: bogra_1
+    name_bn = source.get("name_bn")       # যেমন: বগুড়া পবিস-১
+    name_en = source.get("name_en")       # যেমন: Bogra PBS-1
+    serial = source.get("serial", "")     # যেমন: 77
     url = source.get("url")
     topic = source.get("topic")
 
@@ -77,6 +79,7 @@ def check_notices():
 
               notice_title = ""
               notice_link = ""
+              notice_date = ""
 
               if link_tag and link_tag.text.strip():
                 notice_title = link_tag.text.strip()
@@ -88,13 +91,22 @@ def check_notices():
                   any_link = row.find("a")
                   notice_link = any_link.get("href", "") if any_link else ""
 
+              # যদি টেবিলে ডেট বা সময় থাকে তা সংগ্রহ করা
+              if len(cells) >= 3:
+                date_cell = cells[2] # সাধারণত ৩য় কলামে ডেট থাকে
+                notice_date = date_cell.text.strip()
+
               if notice_title:
                 if notice_link.startswith("/"):
                   base_domain = "/".join(url.split("/")[:3])
                   notice_link = base_domain + notice_link
 
                 notices_found.append(
-                    {"title": notice_title, "pdf_link": notice_link}
+                    {
+                        "title": notice_title,
+                        "pdf_link": notice_link,
+                        "date": notice_date,
+                    }
                 )
 
                 if len(notices_found) >= 10:
@@ -107,36 +119,43 @@ def check_notices():
             latest_notice = notices_found[0]
             notice_title = latest_notice["title"]
             notice_link = latest_notice["pdf_link"]
+            notice_date = latest_notice["date"]
 
-            current_time = datetime.now()
-            formatted_time = current_time.strftime("%d-%m-%Y %a, %I:%M:%S %p")
-
-            # নতুন নোটিশ হোক বা না হোক, অথবা প্রথমবার রান করার সময় ডাটা সিঙ্ক নিশ্চিত করতে
-            # পবিসের বেস ইনফো সবসময় আপডেট থাকবে
+            # ১. পবিসের মূল নোড আপডেট করা (যা দিয়ে অ্যাপের নোটিফিকেশন ট্রিগার হবে)
             ref.child("id").set(source_id)
+            ref.child("pbs").set(pbs_code)
             ref.child("name_bn").set(name_bn)
             ref.child("name_en").set(name_en)
+            ref.child("serial").set(serial)
+            ref.child("pbs_url").set(url)
             ref.child("last_title").set(notice_title)
-            ref.child("last_link").set(notice_link)
-            ref.child("formatted_time").set(formatted_time)
+            ref.child("last_pdf").set(notice_link)
 
-            # হিস্ট্রি আপডেট করা
+            # ২. হিস্ট্রি আপডেট করা (পুরনো ইতিহাস মুছে ফেলা হবে না, বরং নতুনগুলো চেক করে যুক্ত করা হবে)
             history_ref = ref.child("notices_history")
-            history_ref.delete()
+            existing_history = history_ref.get() or {}
+            existing_titles = [
+                val.get("notice_title")
+                for val in existing_history.values()
+                if isinstance(val, dict)
+            ]
 
             for item in notices_found:
-              history_ref.push(
-                  {
-                      "id": source_id,
-                      "name_bn": name_bn,
-                      "name_en": name_en,
-                      "title": item["title"],
-                      "pdf_link": item["pdf_link"],
-                      "formatted_time": formatted_time,
-                  }
-              )
+              if item["title"] not in existing_titles:
+                history_ref.push(
+                    {
+                        "id": source_id,
+                        "pbs": pbs_code,
+                        "name_bn": name_bn,
+                        "name_en": name_en,
+                        "serial": serial,
+                        "notice_title": item["title"],
+                        "notice_link": item["pdf_link"],
+                        "notice_date": item["date"],
+                    }
+                )
 
-            # যদি নতুন নোটিশ হয় তবেই নোটিফিকেশন যাবে
+            # ৩. যদি নতুন নোটিশ হয় তবেই ফায়ারবেস কি আপডেট হবে এবং নোটিফিকেশন যাবে
             if notice_title != last_saved_title:
               print(f"[{name_bn}] নতুন নোটিশ পাওয়া গেছে: {notice_title}")
               send_push_notification(
@@ -153,7 +172,6 @@ def check_notices():
         )
 
     except Exception as e:
-      # কোনো পবিসে এরর আসলেও যেন লুপ ভেঙে না গিয়ে পরের পবিসে চলে যায়
       print(f"[{name_bn}] স্ক্যান করতে গিয়ে সমস্যা হয়েছে: {e}")
 
     time.sleep(1)

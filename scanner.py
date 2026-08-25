@@ -24,7 +24,7 @@ try:
 except ValueError:
   pass
 
-# sources.json (বা targets.json) ফাইল থেকে পবিসগুলোর লিস্ট লোড করা
+# sources.json ফাইল থেকে পবিসগুলোর লিস্ট লোড করা
 try:
   with open("sources.json", "r", encoding="utf-8") as f:
     MASTER_SOURCES = json.load(f)
@@ -40,14 +40,18 @@ def check_notices():
   )
 
   for source in MASTER_SOURCES:
-    # sources.json থেকে প্রয়োজনীয় ফিল্ডগুলো সঠিকভাবে তুলে নেওয়া
-    source_id = source.get("id")          # যেমন: pbs1_bogra
-    pbs_code = source.get("pbs", "")      # যেমন: bogra_1
-    name_bn = source.get("name_bn")       # যেমন: বগুড়া পবিস-১
-    name_en = source.get("name_en")       # যেমন: Bogra PBS-1
-    serial = source.get("serial", "")     # যেমন: 77
+    # sources.json থেকে সঠিক ফিল্ডগুলো তুলে নেওয়া
+    source_id = source.get("id")          # যেমন: pbs2_pabna
+    pbs_code = source.get("pbs", "")      # জেসনের "pbs" ফিল্ড (যেমন: pabna_2)
+    name_bn = source.get("name_bn")       # পাবনা পবিস-২
+    name_en = source.get("name_en")       # Pabna PBS 2
+    serial = source.get("serial", "")     # 80
     url = source.get("url")
     topic = source.get("topic")
+
+    # যদি pbs ফিল্ড ফাইলে মিসিং থাকে তবে id থেকে একটা ভ্যালু ব্যাকআপ হিসেবে নিয়ে নেবে
+    if not pbs_code:
+      pbs_code = source_id
 
     print(f"[{name_bn}] স্ক্যান করা হচ্ছে...")
 
@@ -93,8 +97,12 @@ def check_notices():
 
               # যদি টেবিলে ডেট বা সময় থাকে তা সংগ্রহ করা
               if len(cells) >= 3:
-                date_cell = cells[2] # সাধারণত ৩য় কলামে ডেট থাকে
+                date_cell = cells[2]
                 notice_date = date_cell.text.strip()
+
+              # যদি ওয়েবসাইট থেকে ডেট না পাওয়া যায়, তবে আজকের রিয়েল-টাইম ডেট বসবে (কোনোভাবেই খালি থাকবে না)
+              if not notice_date:
+                notice_date = datetime.now().strftime("%d-%m-%Y")
 
               if notice_title:
                 if notice_link.startswith("/"):
@@ -119,9 +127,8 @@ def check_notices():
             latest_notice = notices_found[0]
             notice_title = latest_notice["title"]
             notice_link = latest_notice["pdf_link"]
-            notice_date = latest_notice["date"]
 
-            # ১. পবিসের মূল নোড আপডেট করা (যা দিয়ে অ্যাপের নোটিফিকেশন ট্রিগার হবে)
+            # ১. পবিসের মূল নোড আপডেট করা (অ্যাপের নোটিফিকেশন ট্রিগার করার জন্য)
             ref.child("id").set(source_id)
             ref.child("pbs").set(pbs_code)
             ref.child("name_bn").set(name_bn)
@@ -131,7 +138,7 @@ def check_notices():
             ref.child("last_title").set(notice_title)
             ref.child("last_pdf").set(notice_link)
 
-            # ২. হিস্ট্রি আপডেট করা (পুরনো ইতিহাস মুছে ফেলা হবে না, বরং নতুনগুলো চেক করে যুক্ত করা হবে)
+            # ২. হিস্ট্রি আপডেট করা (পুরনো ইতিহাস মুছে না ফেলে নতুনগুলো ডুপ্লিকেট চেক করে পুশ করা)
             history_ref = ref.child("notices_history")
             existing_history = history_ref.get() or {}
             existing_titles = [
@@ -155,7 +162,7 @@ def check_notices():
                     }
                 )
 
-            # ৩. যদি নতুন নোটিশ হয় তবেই ফায়ারবেস কি আপডেট হবে এবং নোটিফিকেশন যাবে
+            # ৩. যদি নতুন নোটিশ হয় তবেই নোটিফিকেশন যাবে
             if notice_title != last_saved_title:
               print(f"[{name_bn}] নতুন নোটিশ পাওয়া গেছে: {notice_title}")
               send_push_notification(
@@ -203,4 +210,3 @@ def send_push_notification(name_bn, title, link, topic):
 if __name__ == "__main__":
   check_notices()
   print("সকল পবিস ও REB সাইটের স্ক্যানিং সফলভাবে সম্পন্ন হয়েছে।")
-  

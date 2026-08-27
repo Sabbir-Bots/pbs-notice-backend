@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import time
 
@@ -12,7 +12,23 @@ import urllib3
 
 
 # =========================================================
-# SSL Certificate Warning বন্ধ করা
+# CONFIGURATION
+# =========================================================
+
+FIREBASE_DATABASE_URL = (
+    "https://love-lucky-62b3c-default-rtdb.firebaseio.com"
+)
+
+FIREBASE_CREDENTIALS_FILE = "firebase_credentials.json"
+
+RECENT_NOTICE_HOURS = 72
+MAX_NOTICES_PER_SOURCE = 10
+REQUEST_TIMEOUT = 30
+REQUEST_DELAY_SECONDS = 1
+
+
+# =========================================================
+# SSL WARNING
 # =========================================================
 
 urllib3.disable_warnings(
@@ -21,45 +37,58 @@ urllib3.disable_warnings(
 
 
 # =========================================================
-# Firebase Initialize
+# TIME HELPERS
+# =========================================================
+
+def utc_now():
+    return datetime.now(timezone.utc)
+
+
+def local_now_string():
+    # GitHub runner UTC time is used internally.
+    # The readable value is stored with timezone information.
+    return utc_now().astimezone().isoformat(
+        timespec="seconds"
+    )
+
+
+def unix_now():
+    return int(time.time())
+
+
+# =========================================================
+# FIREBASE INITIALIZATION
 # =========================================================
 
 try:
-
     cred = credentials.Certificate(
-        "firebase_credentials.json"
+        FIREBASE_CREDENTIALS_FILE
     )
 
     firebase_admin.initialize_app(
         cred,
         {
-            "databaseURL": (
-                "https://love-lucky-62b3c-default-rtdb.firebaseio.com"
-            )
+            "databaseURL": FIREBASE_DATABASE_URL
         },
     )
 
     print("✅ Firebase initialized successfully.")
 
 except ValueError:
-
-    # Firebase আগে থেকেই initialized থাকলে
-    # এই error আসতে পারে।
     print("ℹ️ Firebase already initialized.")
 
 except Exception as e:
-
     print(
         f"❌ Firebase initialization failed: {e}"
     )
+    raise
 
 
 # =========================================================
-# sources.json Load
+# LOAD SOURCES.JSON
 # =========================================================
 
 try:
-
     with open(
         "sources.json",
         "r",
@@ -96,19 +125,27 @@ def validate_sources():
 
         return False
 
+    ids = []
 
-    # -----------------------------------------------------
-    # Duplicate ID Check
-    # -----------------------------------------------------
+    bad_entries = []
 
-    ids = [
-        str(
+    for source in MASTER_SOURCES:
+
+        source_id = str(
             source.get("id", "")
         ).strip()
 
-        for source in MASTER_SOURCES
-    ]
+        url = str(
+            source.get("url", "")
+        ).strip()
 
+        if source_id:
+            ids.append(source_id)
+
+        if not source_id or not url:
+            bad_entries.append(
+                source_id or "<missing id>"
+            )
 
     if len(ids) != len(set(ids)):
 
@@ -117,33 +154,6 @@ def validate_sources():
         )
 
         return False
-
-
-    # -----------------------------------------------------
-    # Required Field Check
-    # -----------------------------------------------------
-
-    bad_entries = []
-
-
-    for source in MASTER_SOURCES:
-
-        source_id = str(
-            source.get("id", "")
-        ).strip()
-
-
-        url = str(
-            source.get("url", "")
-        ).strip()
-
-
-        if not source_id or not url:
-
-            bad_entries.append(
-                source_id or "<missing id>"
-            )
-
 
     if bad_entries:
 
@@ -157,14 +167,363 @@ def validate_sources():
 
         return False
 
-
     print(
         f"✅ Master source validation OK: "
         f"{len(MASTER_SOURCES)} টি entry."
     )
 
-
     return True
+
+
+# =========================================================
+# FIREBASE: SCANNER RUN STATUS
+# =========================================================
+
+def start_scanner_run():
+
+    started_unix = unix_now()
+    started_readable = local_now_string()
+
+    try:
+
+        db.reference("last_updated").set(
+            {
+                "timestamp": started_readable,
+                "unix": started_unix,
+                "status": "running",
+            }
+        )
+
+        db.reference(
+            "scanner_status"
+        ).update(
+            {
+                "status": "running",
+                "started_at": started_readable,
+                "started_at_unix": started_unix,
+            }
+        )
+
+    except Exception as e:
+
+        print(
+            f"⚠️ last_updated/scanner_status update failed: {e}"
+        )
+
+    return started_unix
+
+
+def finish_scanner_run(
+    started_unix,
+    stats
+):
+
+    finished_unix = unix_now()
+    finished_readable = local_now_string()
+
+    duration = max(
+        0,
+        finished_unix - started_unix
+    )
+
+    try:
+
+        db.reference("last_updated").set(
+            {
+                "timestamp": finished_readable,
+                "unix": finished_unix,
+                "status": "completed",
+                "duration_seconds": duration,
+            }
+        )
+
+        db.reference(
+            "scanner_status"
+        ).set(
+            {
+                "status": "completed",
+                "started_at_unix": started_unix,
+                "finished_at": finished_readable,
+                "finished_at_unix": finished_unix,
+                "duration_seconds": duration,
+                "total_sources": stats["total"],
+                "success": stats["success"],
+                "no_notice": stats["no_notice"],
+                "new_notices": stats["new_notices"],
+                "failed": stats["failed"],
+                "skipped": stats["skipped"],
+                "notifications_sent": stats[
+                    "notifications_sent"
+                ],
+                "notification_failures": stats[
+                    "notification_failures"
+                ],
+            }
+        )
+
+    except Exception as e:
+
+        print(
+            f"⚠️ scanner status update failed: {e}"
+        )
+
+
+# =========================================================
+# FIREBASE: 72-HOUR NOTICE CLEANUP
+# =========================================================
+
+def cleanup_expired_recent_notices():
+
+    now = unix_now()
+
+    recent_ref = db.reference(
+        "today_latest_notice"
+    )
+
+    try:
+
+        existing = (
+            recent_ref.get()
+            or {}
+        )
+
+        if not isinstance(
+            existing,
+            dict
+        ):
+
+            print(
+                "⚠️ today_latest_notice format invalid; cleanup skipped."
+            )
+
+            return 0
+
+        deleted = 0
+
+        for key, value in list(
+            existing.items()
+        ):
+
+            if not isinstance(
+                value,
+                dict
+            ):
+
+                continue
+
+            expires_at = value.get(
+                "expires_at_unix"
+            )
+
+            try:
+
+                expires_at = int(
+                    expires_at
+                )
+
+            except (
+                TypeError,
+                ValueError
+            ):
+
+                continue
+
+            if expires_at <= now:
+
+                try:
+
+                    recent_ref.child(
+                        key
+                    ).delete()
+
+                    deleted += 1
+
+                except Exception as e:
+
+                    print(
+                        f"⚠️ Expired notice delete failed "
+                        f"[{key}]: {e}"
+                    )
+
+        print(
+            f"🧹 72-hour cleanup: "
+            f"{deleted} টি expired notice deleted."
+        )
+
+        return deleted
+
+    except Exception as e:
+
+        print(
+            f"⚠️ 72-hour cleanup failed: {e}"
+        )
+
+        return 0
+
+
+# =========================================================
+# FIREBASE: ADD NOTICE TO 72-HOUR FEED
+# =========================================================
+
+def add_to_recent_notices(
+    source_id,
+    pbs_code,
+    name_bn,
+    name_en,
+    serial,
+    item
+):
+
+    created_unix = unix_now()
+
+    expires_unix = (
+        created_unix
+        +
+        (RECENT_NOTICE_HOURS * 60 * 60)
+    )
+
+    payload = {
+
+        "id": source_id,
+
+        "pbs": pbs_code,
+
+        "name_bn": name_bn,
+
+        "name_en": name_en,
+
+        "serial": serial,
+
+        "notice_title": item.get(
+            "title",
+            ""
+        ),
+
+        "notice_link": item.get(
+            "pdf_link",
+            ""
+        ),
+
+        "notice_date": item.get(
+            "date",
+            ""
+        ),
+
+        "created_at": local_now_string(),
+
+        "created_at_unix": created_unix,
+
+        "expires_at_unix": expires_unix,
+
+        "expires_after_hours":
+            RECENT_NOTICE_HOURS,
+    }
+
+    try:
+
+        db.reference(
+            "today_latest_notice"
+        ).push(
+            payload
+        )
+
+        return True
+
+    except Exception as e:
+
+        print(
+            f"⚠️ 72-hour notice save failed: {e}"
+        )
+
+        return False
+
+
+# =========================================================
+# SEND DATA-ONLY FCM
+# =========================================================
+
+def send_push_notification(
+    name_bn,
+    title,
+    link,
+    topic
+):
+
+    if not topic:
+
+        print(
+            f"⚠️ [{name_bn}] "
+            "FCM Topic পাওয়া যায়নি।"
+        )
+
+        return False
+
+    message = messaging.Message(
+
+        # IMPORTANT:
+        # notification= এখানে ব্যবহার করা হয়নি।
+        # এটি DATA-ONLY FCM message.
+        data={
+
+            "title":
+                f"🔔 {name_bn}",
+
+            "body":
+                title,
+
+            "url":
+                link,
+
+            "source":
+                name_bn,
+
+            "click_action":
+                "NOTICE_DETAILS",
+        },
+
+        topic=topic
+    )
+
+    try:
+
+        response = messaging.send(
+            message
+        )
+
+        print()
+        print(
+            f"📱 [{name_bn}] "
+            "FCM Data-only notification "
+            "সফলভাবে পাঠানো হয়েছে!"
+        )
+
+        print(
+            f"   Topic: {topic}"
+        )
+
+        print(
+            f"   Message ID: {response}"
+        )
+
+        return True
+
+    except Exception as e:
+
+        print()
+        print(
+            f"❌ [{name_bn}] "
+            "FCM notification পাঠাতে ব্যর্থ!"
+        )
+
+        print(
+            f"   Topic: {topic}"
+        )
+
+        print(
+            f"   Error: {e}"
+        )
+
+        return False
 
 
 # =========================================================
@@ -173,92 +532,91 @@ def validate_sources():
 
 def check_notices():
 
-    # -----------------------------------------------------
-    # Validate sources আগে
-    # -----------------------------------------------------
-
     if not validate_sources():
 
         return
 
+    started_unix = start_scanner_run()
+
+    cleanup_expired_recent_notices()
+
+    stats = {
+
+        "total":
+            len(MASTER_SOURCES),
+
+        "success":
+            0,
+
+        "no_notice":
+            0,
+
+        "new_notices":
+            0,
+
+        "failed":
+            0,
+
+        "skipped":
+            0,
+
+        "notifications_sent":
+            0,
+
+        "notification_failures":
+            0,
+    }
 
     print()
     print("=" * 70)
 
     print(
-        f"[{datetime.now()}] "
+        f"[{local_now_string()}] "
         f"স্ক্যানিং শুরু হয়েছে: "
         f"মোট {len(MASTER_SOURCES)} টি অফিস/পবিস..."
     )
 
     print("=" * 70)
 
-
-    # =====================================================
-    # প্রতিটি PBS / REB Scan
-    # =====================================================
-
     for source in MASTER_SOURCES:
-
-        # -------------------------------------------------
-        # sources.json থেকে তথ্য নেওয়া
-        # -------------------------------------------------
 
         source_id = str(
             source.get("id", "")
         ).strip()
 
-
         pbs_code = str(
             source.get("pbs", "")
         ).strip()
-
 
         name_bn = str(
             source.get("name_bn", "")
         ).strip()
 
-
         name_en = str(
             source.get("name_en", "")
         ).strip()
-
 
         serial = str(
             source.get("serial", "")
         ).strip()
 
-
         url = str(
             source.get("url", "")
         ).strip()
-
 
         topic = str(
             source.get("topic", "")
         ).strip()
 
-
-        # -------------------------------------------------
-        # PBS code missing হলে ID backup
-        # -------------------------------------------------
-
         if not pbs_code:
-
             pbs_code = source_id
-
 
         print()
         print(
             f"🔎 [{name_bn}] স্ক্যান করা হচ্ছে..."
         )
 
-
         try:
-
-            # =================================================
-            # HTTP Headers
-            # =================================================
 
             headers = {
 
@@ -272,10 +630,7 @@ def check_notices():
                 )
             }
 
-
-            # =================================================
-            # Website Request
-            # =================================================
+            request_started = time.time()
 
             response = requests.get(
 
@@ -283,75 +638,64 @@ def check_notices():
 
                 headers=headers,
 
-                timeout=30,
+                timeout=REQUEST_TIMEOUT,
 
                 verify=False
             )
 
-
-            # =================================================
-            # HTTP Response Check
-            # =================================================
+            response_seconds = round(
+                time.time()
+                -
+                request_started,
+                2
+            )
 
             if response.status_code != 200:
+
+                stats["failed"] += 1
 
                 print(
                     f"⚠️ [{name_bn}] "
                     f"সাইট রেসপন্স করেনি। "
-                    f"Status: {response.status_code}"
+                    f"Status: {response.status_code} "
+                    f"({response_seconds}s)"
                 )
 
-                time.sleep(1)
+                time.sleep(
+                    REQUEST_DELAY_SECONDS
+                )
 
                 continue
-
-
-            # =================================================
-            # HTML Parse
-            # =================================================
 
             soup = BeautifulSoup(
                 response.text,
                 "html.parser"
             )
 
-
-            # =================================================
-            # প্রথম Table খোঁজা
-            # =================================================
-
             notice_table = soup.find(
                 "table"
             )
 
-
             if not notice_table:
+
+                stats["skipped"] += 1
 
                 print(
                     f"⚠️ [{name_bn}] "
                     "কোনো table পাওয়া যায়নি।"
                 )
 
-                time.sleep(1)
+                time.sleep(
+                    REQUEST_DELAY_SECONDS
+                )
 
                 continue
-
-
-            # =================================================
-            # Table Rows
-            # =================================================
 
             rows = notice_table.find_all(
                 "tr"
             )
 
-
             notices_found = []
-
-
-            # =================================================
-            # প্রতিটি Row Process
-            # =================================================
 
             for row in rows:
 
@@ -359,32 +703,18 @@ def check_notices():
                     "td"
                 )
 
-
-                # কমপক্ষে ২টি cell দরকার
-
                 if len(cells) < 2:
-
                     continue
 
-
                 title_cell = cells[1]
-
 
                 link_tag = title_cell.find(
                     "a"
                 )
 
-
                 notice_title = ""
-
                 notice_link = ""
-
                 notice_date = ""
-
-
-                # =================================================
-                # Title + Link
-                # =================================================
 
                 if (
                     link_tag
@@ -398,15 +728,14 @@ def check_notices():
                         .strip()
                     )
 
-
                     notice_link = (
-                        link_tag.get(
+                        link_tag
+                        .get(
                             "href",
                             ""
                         )
                         .strip()
                     )
-
 
                 else:
 
@@ -416,49 +745,34 @@ def check_notices():
                         .strip()
                     )
 
-
                     if text_val:
 
                         notice_title = (
                             text_val
                         )
 
-
                         any_link = (
                             row.find("a")
                         )
 
-
-                        if any_link:
-
-                            notice_link = (
-                                any_link
-                                .get(
-                                    "href",
-                                    ""
-                                )
-                                .strip()
+                        notice_link = (
+                            any_link
+                            .get(
+                                "href",
+                                ""
                             )
-
-
-                # =================================================
-                # Notice Date
-                # =================================================
+                            .strip()
+                            if any_link
+                            else ""
+                        )
 
                 if len(cells) >= 3:
 
-                    date_cell = cells[2]
-
                     notice_date = (
-                        date_cell
+                        cells[2]
                         .text
                         .strip()
                     )
-
-
-                # =================================================
-                # Date না পাওয়া গেলে Current Date
-                # =================================================
 
                 if not notice_date:
 
@@ -469,18 +783,11 @@ def check_notices():
                         )
                     )
 
-
-                # =================================================
-                # Notice পাওয়া গেলে
-                # =================================================
-
                 if notice_title:
 
-                    # ------------------------------------------------
-                    # Relative URL → Absolute URL
-                    # ------------------------------------------------
-
-                    if notice_link.startswith("/"):
+                    if notice_link.startswith(
+                        "/"
+                    ):
 
                         base_domain = (
                             "/".join(
@@ -488,44 +795,29 @@ def check_notices():
                             )
                         )
 
-
                         notice_link = (
                             base_domain
                             +
                             notice_link
                         )
 
+                    elif notice_link.startswith(
+                        "//"
+                    ):
 
-                    # ------------------------------------------------
-                    # Protocol-relative URL
-                    # যেমন //pbs.gov.bd/...
-                    # ------------------------------------------------
-
-                    elif notice_link.startswith("//"):
-
-                        if url.startswith("https://"):
-
-                            notice_link = (
+                        notice_link = (
+                            (
                                 "https:"
-                                +
-                                notice_link
+                                if url.startswith(
+                                    "https://"
+                                )
+                                else "http:"
                             )
-
-                        else:
-
-                            notice_link = (
-                                "http:"
-                                +
-                                notice_link
-                            )
-
-
-                    # ------------------------------------------------
-                    # Notice List-এ যোগ
-                    # ------------------------------------------------
+                            +
+                            notice_link
+                        )
 
                     notices_found.append(
-
                         {
                             "title":
                                 notice_title,
@@ -538,170 +830,124 @@ def check_notices():
                         }
                     )
 
-
-                    # সর্বোচ্চ ১০টি notice
-
-                    if len(
-                        notices_found
-                    ) >= 10:
+                    if (
+                        len(notices_found)
+                        >= MAX_NOTICES_PER_SOURCE
+                    ):
 
                         break
 
-
-            # =================================================
-            # কোনো Notice পাওয়া যায়নি
-            # =================================================
-
             if not notices_found:
+
+                stats["no_notice"] += 1
 
                 print(
                     f"⚠️ [{name_bn}] "
                     "টেবিল থেকে কোনো notice পাওয়া যায়নি।"
                 )
 
-                time.sleep(1)
+                time.sleep(
+                    REQUEST_DELAY_SECONDS
+                )
 
                 continue
 
-
-            # =================================================
-            # Firebase Reference
-            # =================================================
+            stats["success"] += 1
 
             ref = db.reference(
                 f"notices/{source_id}"
             )
 
-
-            # =================================================
-            # আগের সর্বশেষ Notice Title
-            # =================================================
-
             last_saved_title = (
-                ref
-                .child("last_title")
-                .get()
+                ref.child(
+                    "last_title"
+                ).get()
             )
-
-
-            # =================================================
-            # Latest Notice
-            # =================================================
 
             latest_notice = (
                 notices_found[0]
             )
 
-
             notice_title = (
                 latest_notice["title"]
             )
-
 
             notice_link = (
                 latest_notice["pdf_link"]
             )
 
-
             notice_date = (
                 latest_notice["date"]
             )
 
-
             # =================================================
-            # নতুন Notice কিনা আগে নির্ধারণ
-            # =================================================
-
-            is_new_notice = (
-                notice_title
-                !=
-                last_saved_title
-            )
-
-
-            # =================================================
-            # Firebase Main Node Update
+            # UPDATE MAIN PBS NODE
             # =================================================
 
-            ref.child(
-                "id"
-            ).set(
+            ref.child("id").set(
                 source_id
             )
 
-
-            ref.child(
-                "pbs"
-            ).set(
+            ref.child("pbs").set(
                 pbs_code
             )
 
-
-            ref.child(
-                "name_bn"
-            ).set(
+            ref.child("name_bn").set(
                 name_bn
             )
 
-
-            ref.child(
-                "name_en"
-            ).set(
+            ref.child("name_en").set(
                 name_en
             )
 
-
-            ref.child(
-                "serial"
-            ).set(
+            ref.child("serial").set(
                 serial
             )
 
-
-            ref.child(
-                "pbs_url"
-            ).set(
+            ref.child("pbs_url").set(
                 url
             )
 
-
-            ref.child(
-                "last_title"
-            ).set(
+            ref.child("last_title").set(
                 notice_title
             )
 
-
-            ref.child(
-                "last_pdf"
-            ).set(
+            ref.child("last_pdf").set(
                 notice_link
             )
 
-
-            # =================================================
-            # Notice History
-            # =================================================
-
-            history_ref = (
-                ref.child(
-                    "notices_history"
-                )
+            ref.child(
+                "last_notice_date"
+            ).set(
+                notice_date
             )
 
+            ref.child(
+                "last_scanned_at"
+            ).set(
+                local_now_string()
+            )
+
+            ref.child(
+                "last_scanned_at_unix"
+            ).set(
+                unix_now()
+            )
+
+            # =================================================
+            # HISTORY
+            # =================================================
+
+            history_ref = ref.child(
+                "notices_history"
+            )
 
             existing_history = (
                 history_ref.get()
                 or {}
             )
 
-
-            # =================================================
-            # Existing Titles
-            # =================================================
-
-            existing_titles = []
-
+            existing_titles = set()
 
             if isinstance(
                 existing_history,
@@ -717,37 +963,29 @@ def check_notices():
                         dict
                     ):
 
-                        old_title = (
-                            value.get(
-                                "notice_title"
-                            )
+                        old_title = value.get(
+                            "notice_title"
                         )
 
-
                         if old_title:
-
-                            existing_titles.append(
+                            existing_titles.add(
                                 old_title
                             )
 
-
-            # =================================================
-            # History-তে নতুন Notice Save
-            # =================================================
-
-            new_history_count = 0
-
+            newly_added_history = []
 
             for item in notices_found:
 
+                item_title = item[
+                    "title"
+                ]
+
                 if (
-                    item["title"]
-                    not in
-                    existing_titles
+                    item_title
+                    not in existing_titles
                 ):
 
                     history_ref.push(
-
                         {
                             "id":
                                 source_id,
@@ -765,25 +1003,66 @@ def check_notices():
                                 serial,
 
                             "notice_title":
-                                item["title"],
+                                item_title,
 
                             "notice_link":
-                                item["pdf_link"],
+                                item[
+                                    "pdf_link"
+                                ],
 
                             "notice_date":
-                                item["date"],
+                                item[
+                                    "date"
+                                ],
+
+                            "added_at":
+                                local_now_string(),
+
+                            "added_at_unix":
+                                unix_now(),
                         }
                     )
 
+                    existing_titles.add(
+                        item_title
+                    )
 
-                    new_history_count += 1
-
+                    newly_added_history.append(
+                        item
+                    )
 
             # =================================================
-            # NEW NOTICE → FCM
+            # 72-HOUR RECENT NOTICE FEED
             # =================================================
 
-            if is_new_notice:
+            for item in newly_added_history:
+
+                added = (
+                    add_to_recent_notices(
+                        source_id,
+                        pbs_code,
+                        name_bn,
+                        name_en,
+                        serial,
+                        item
+                    )
+                )
+
+                if added:
+
+                    stats[
+                        "new_notices"
+                    ] += 1
+
+            # =================================================
+            # NEW LATEST NOTICE → FCM
+            # =================================================
+
+            if (
+                notice_title
+                !=
+                last_saved_title
+            ):
 
                 print()
                 print(
@@ -796,23 +1075,22 @@ def check_notices():
                 )
 
                 print(
-                    f"Title: {notice_title}"
+                    f"   Title: {notice_title}"
                 )
 
                 print(
-                    f"Link: {notice_link}"
+                    f"   Link: {notice_link}"
                 )
 
                 print(
-                    f"Topic: {topic}"
+                    f"   Topic: {topic}"
                 )
 
                 print(
                     "🚨 ======================================="
                 )
 
-
-                send_push_notification(
+                sent = send_push_notification(
 
                     name_bn,
 
@@ -823,6 +1101,17 @@ def check_notices():
                     topic
                 )
 
+                if sent:
+
+                    stats[
+                        "notifications_sent"
+                    ] += 1
+
+                else:
+
+                    stats[
+                        "notification_failures"
+                    ] += 1
 
             else:
 
@@ -831,164 +1120,101 @@ def check_notices():
                     "কোনো নতুন notice নেই।"
                 )
 
-
-            # =================================================
-            # Summary
-            # =================================================
-
             print(
                 f"   Firebase: ✅ Updated"
             )
 
             print(
                 f"   History: "
-                f"{new_history_count} নতুন entry"
+                f"{len(newly_added_history)} "
+                f"নতুন entry"
             )
 
+            print(
+                f"   Response time: "
+                f"{response_seconds}s"
+            )
 
         except requests.exceptions.Timeout:
+
+            stats["failed"] += 1
 
             print(
                 f"⏱️ [{name_bn}] "
                 "Website request timeout."
             )
 
-
         except requests.exceptions.RequestException as e:
+
+            stats["failed"] += 1
 
             print(
                 f"🌐 [{name_bn}] "
                 f"Website request error: {e}"
             )
 
-
         except Exception as e:
+
+            stats["failed"] += 1
 
             print(
                 f"❌ [{name_bn}] "
                 f"স্ক্যান করতে গিয়ে সমস্যা হয়েছে: {e}"
             )
 
-
-        # =================================================
-        # প্রতি PBS-এর পরে ১ সেকেন্ড
-        # =================================================
-
-        time.sleep(1)
-
-
-# =========================================================
-# DATA-ONLY FCM PUSH NOTIFICATION
-# =========================================================
-#
-# গুরুত্বপূর্ণ:
-#
-# এখানে notification= ব্যবহার করা হয়নি।
-#
-# শুধু data পাঠানো হচ্ছে।
-#
-# Android App-এর
-# MyFirebaseMessagingService
-# এই data গ্রহণ করে নিজের notification তৈরি করবে।
-#
-# =========================================================
-
-def send_push_notification(
-    name_bn,
-    title,
-    link,
-    topic
-):
-
-    # -----------------------------------------------------
-    # Topic না থাকলে Notification পাঠাব না
-    # -----------------------------------------------------
-
-    if not topic:
-
-        print(
-            f"⚠️ [{name_bn}] "
-            "FCM Topic পাওয়া যায়নি। "
-            "Notification পাঠানো হয়নি।"
+        time.sleep(
+            REQUEST_DELAY_SECONDS
         )
 
-        return
+    # =========================================================
+    # FINALIZE RUN
+    # =========================================================
 
-
-    # -----------------------------------------------------
-    # Data-only FCM Message
-    # -----------------------------------------------------
-
-    message = messaging.Message(
-
-        data={
-
-            "title":
-                f"🔔 {name_bn}",
-
-            "body":
-                title,
-
-            "url":
-                link,
-
-            "source":
-                name_bn,
-
-            "click_action":
-                "NOTICE_DETAILS"
-        },
-
-        topic=topic
+    finish_scanner_run(
+        started_unix,
+        stats
     )
 
+    print()
+    print("=" * 70)
 
-    # -----------------------------------------------------
-    # Send FCM
-    # -----------------------------------------------------
+    print(
+        "📊 SCAN SUMMARY"
+    )
 
-    try:
+    print(
+        f"Total sources          : {stats['total']}"
+    )
 
-        response = messaging.send(
-            message
-        )
+    print(
+        f"Successful scans       : {stats['success']}"
+    )
 
+    print(
+        f"No notice              : {stats['no_notice']}"
+    )
 
-        print()
-        print(
-            f"📱 [{name_bn}] "
-            "FCM Data-only notification "
-            "সফলভাবে পাঠানো হয়েছে!"
-        )
+    print(
+        f"New history entries    : {stats['new_notices']}"
+    )
 
+    print(
+        f"Failed                 : {stats['failed']}"
+    )
 
-        print(
-            f"   Topic: {topic}"
-        )
+    print(
+        f"Skipped                 : {stats['skipped']}"
+    )
 
+    print(
+        f"FCM sent               : {stats['notifications_sent']}"
+    )
 
-        print(
-            f"   Message ID: {response}"
-        )
+    print(
+        f"FCM failed             : {stats['notification_failures']}"
+    )
 
-
-    except Exception as e:
-
-        print()
-        print(
-            f"❌ [{name_bn}] "
-            "FCM notification পাঠাতে ব্যর্থ!"
-        )
-
-
-        print(
-            f"   Topic: {topic}"
-        )
-
-
-        print(
-            f"   Error: {e}"
-        )
+    print("=" * 70)
 
 
 # =========================================================
@@ -1012,28 +1238,40 @@ if __name__ == "__main__":
         "🔥 Firebase: ENABLED"
     )
 
+    print(
+        "🕒 Recent notice retention: "
+        f"{RECENT_NOTICE_HOURS} hours"
+    )
+
     print("=" * 70)
 
     print()
 
+    try:
 
-    # -----------------------------------------------------
-    # Main Scanner
-    # -----------------------------------------------------
+        check_notices()
 
-    check_notices()
+    except KeyboardInterrupt:
 
+        print(
+            "\n⛔ Scanner manually stopped."
+        )
 
-    # -----------------------------------------------------
-    # Finished
-    # -----------------------------------------------------
+    except Exception as e:
+
+        print(
+            f"\n❌ Fatal scanner error: {e}"
+        )
+
+        # GitHub Actions-এ failure detect করার জন্য
+        raise
 
     print()
     print("=" * 70)
 
     print(
         "✅ সকল PBS ও REB সাইটের "
-        "স্ক্যানিং সফলভাবে সম্পন্ন হয়েছে।"
+        "স্ক্যানিং সম্পন্ন হয়েছে।"
     )
 
     print("=" * 70)

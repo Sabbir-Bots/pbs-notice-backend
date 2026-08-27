@@ -40,8 +40,8 @@ jobs:
 
           message = messaging.Message(
               notification=messaging.Notification(
-                  title="🔔 PBS Notice Alert",
-                  body="FCM Test Notification সফল হয়েছে! 🎉",
+                  title="🔔 PBS Notice Alert By Developer",
+                  body="FCM Developer Notification সফল হয়েছে! 🎉",
               ),
               data={
                   "click_action": "NOTICE_DETAILS",

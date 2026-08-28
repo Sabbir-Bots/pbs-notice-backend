@@ -10,7 +10,7 @@ on:
   # We intentionally avoid :00 and :30 because GitHub reports that
   # scheduled workflows can be delayed during periods of high load.
   schedule:
-    - cron: '7,37 * * * *'
+    - cron: '*/5 * * * *'
 
   # Manual run button in GitHub Actions.
   workflow_dispatch:

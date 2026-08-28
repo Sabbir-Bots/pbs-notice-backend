@@ -1,15 +1,25 @@
 name: PBS Notice Scanner
 
 on:
+  # GitHub Actions schedule uses UTC.
+  # Bangladesh time (UTC+06:00):
+  # 07 UTC = 01:07 PM BST
+  # 37 UTC = 01:37 PM BST
+  # and so on every hour.
+  #
+  # We intentionally avoid :00 and :30 because GitHub reports that
+  # scheduled workflows can be delayed during periods of high load.
   schedule:
-    # GitHub Actions cron uses UTC.
-    # Runs at every 30-minute boundary.
-    - cron: '*/30 * * * *'
+    - cron: '7,37 * * * *'
+
+  # Manual run button in GitHub Actions.
   workflow_dispatch:
 
-# Prevent overlapping scanner runs.
-# If a scheduled run starts while the previous one is still running,
-# GitHub keeps the new run queued instead of running two scanners together.
+# IMPORTANT:
+# Never run two scanners at the same time.
+# If a new scheduled/manual run starts while the previous scanner
+# is still running, the new run waits instead of starting another
+# 81-PBS scan in parallel.
 concurrency:
   group: pbs-notice-scanner
   cancel-in-progress: false
@@ -21,7 +31,8 @@ jobs:
   run-scanner:
     runs-on: ubuntu-latest
 
-    # Safety limit; scanner normally finishes much earlier.
+    # Your 81-source scan can take several minutes.
+    # This prevents a stuck runner from running forever.
     timeout-minutes: 120
 
     steps:
@@ -41,3 +52,4 @@ jobs:
 
       - name: Run Python Scanner
         run: python scanner.py
+        

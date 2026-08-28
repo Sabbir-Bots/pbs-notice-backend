@@ -2,12 +2,28 @@ name: PBS Notice Scanner
 
 on:
   schedule:
+    # GitHub Actions cron uses UTC.
+    # Runs at every 30-minute boundary.
     - cron: '*/30 * * * *'
   workflow_dispatch:
+
+# Prevent overlapping scanner runs.
+# If a scheduled run starts while the previous one is still running,
+# GitHub keeps the new run queued instead of running two scanners together.
+concurrency:
+  group: pbs-notice-scanner
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   run-scanner:
     runs-on: ubuntu-latest
+
+    # Safety limit; scanner normally finishes much earlier.
+    timeout-minutes: 120
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -16,12 +32,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          cache: 'pip'
 
       - name: Install Dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run Python Scanner
         run: python scanner.py
-        

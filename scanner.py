@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import json
 import time
 
@@ -44,10 +45,14 @@ def utc_now():
     return datetime.now(timezone.utc)
 
 
+BD_TIMEZONE = ZoneInfo("Asia/Dhaka")
+
+
 def local_now_string():
-    # GitHub runner UTC time is used internally.
-    # The readable value is stored with timezone information.
-    return utc_now().astimezone().isoformat(
+    # Always store Bangladesh local time explicitly.
+    return utc_now().astimezone(
+        BD_TIMEZONE
+    ).isoformat(
         timespec="seconds"
     )
 
@@ -1241,6 +1246,10 @@ if __name__ == "__main__":
     print(
         "🕒 Recent notice retention: "
         f"{RECENT_NOTICE_HOURS} hours"
+    )
+
+    print(
+        "🇧🇩 Timezone: Asia/Dhaka (UTC+06:00)"
     )
 
     print("=" * 70)

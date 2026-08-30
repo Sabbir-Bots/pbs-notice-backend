@@ -448,7 +448,9 @@ def add_to_recent_notices(
 # =========================================================
 
 def send_push_notification(
+    source_id,
     name_bn,
+    name_en,
     title,
     link,
     topic
@@ -458,7 +460,7 @@ def send_push_notification(
 
         print(
             f"⚠️ [{name_bn}] "
-            "FCM Topic পাওয়া যায়নি।"
+            "FCM Topic পাওয়া যায়নি।"
         )
 
         return False
@@ -466,9 +468,15 @@ def send_push_notification(
     message = messaging.Message(
 
         # IMPORTANT:
-        # notification= এখানে ব্যবহার করা হয়নি।
+        # notification= এখানে ব্যবহার করা হয়নি।
         # এটি DATA-ONLY FCM message.
         data={
+
+            "id":
+                source_id,
+
+            "name_en":
+                name_en,
 
             "title":
                 f"🔔 {name_bn}",
@@ -1097,7 +1105,11 @@ def check_notices():
 
                 sent = send_push_notification(
 
+                    source_id,
+
                     name_bn,
+
+                    name_en,
 
                     notice_title,
 

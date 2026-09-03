@@ -24,7 +24,7 @@ FIREBASE_CREDENTIALS_FILE = "firebase_credentials.json"
 
 RECENT_NOTICE_HOURS = 72
 MAX_NOTICES_PER_SOURCE = 10
-REQUEST_TIMEOUT = 30
+REQUEST_TIMEOUT = 12
 REQUEST_DELAY_SECONDS = 1
 
 
@@ -1115,7 +1115,7 @@ def check_notices():
 
                     notice_link,
 
-                    topic
+                    "all_users"
                 )
 
                 if sent:
